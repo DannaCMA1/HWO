@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exoplanetas Habitables</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 300px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="info">
+    <h3>Información del Planeta</h3>
+    <div id="planetInfo"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // Datos de los planetas obtenidos del archivo CSV (convertidos a este formato)
+    const habitableExoplanets = [
+        { name: "Proxima Cen b", radius: 1.03, mass: "≥ 1.07", flux: 0.68, tsurf: 261, period: 11.2, distance: 4.2, esi: 0.86 },
+        { name: "Ross 128 b", radius: 1.11, mass: "≥ 1.40", flux: 1.48, tsurf: 316, period: 9.87, distance: 11.0, esi: 0.86 },
+        { name: "GJ 1061 d", radius: 1.16, mass: "≥ 1.64", flux: 0.69, tsurf: 246, period: 13.0, distance: 12.0, esi: 0.86 },
+        { name: "GJ 1061 c", radius: 1.18, mass: "≥ 1.74", flux: 1.45, tsurf: 310, period: 6.69, distance: 12.0, esi: 0.86 },
+        { name: "GJ 273 b", radius: 1.51, mass: "≥ 2.89", flux: 1.06, tsurf: 291, period: 18.6, distance: 12.3, esi: 0.85 }
+    ];
+
+    // Escena, cámara y renderizador
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    let planets = [];
+
+    // Crear planetas con diferentes tamaños y colores
+    function createPlanets() {
+        // Limpiar los planetas existentes
+        planets.forEach(planet => scene.remove(planet));
+        planets = [];
+
+        habitableExoplanets.forEach(planetData => {
+            // Aumentar el tamaño multiplicando por un factor de 5
+            const planetGeometry = new THREE.SphereGeometry(planetData.radius * 5, 32, 32);
+            const planetMaterial = new THREE.MeshBasicMaterial({ color: Math.random() * 0xffffff });
+            const planet = new THREE.Mesh(planetGeometry, planetMaterial);
+
+            // Posición aleatoria de los planetas
+            planet.position.x = (Math.random() - 0.5) * 100;
+            planet.position.y = (Math.random() - 0.5) * 100;
+            planet.position.z = (Math.random() - 0.5) * 100;
+
+            // Almacenar la información del planeta en su propio objeto
+            planet.userData = planetData;
+
+            scene.add(planet);
+            planets.push(planet);
+        });
+    }
+
+    // Inicializar planetas
+    createPlanets();
+
+    // Luz
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(10, 10, 10);
+    scene.add(pointLight);
+
+    camera.position.z = 50;
+
+    // Animación
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Reducir la velocidad de rotación
+        scene.rotation.x += 0.0005; 
+        scene.rotation.y += 0.0005; 
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Detectar clics en los planetas
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onMouseClick(event) {
+        // Convertir las coordenadas del mouse al espacio de Three.js
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Usar raycaster para detectar qué objeto (planeta) fue clicado
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(planets);
+
+        if (intersects.length > 0) {
+            // Obtener el primer objeto intersectado
+            const clickedPlanet = intersects[0].object;
+
+            // Mostrar la información del planeta clicado
+            displayPlanetInfo(clickedPlanet.userData);
+        }
+    }
+
+    // Mostrar la información del planeta
+    function displayPlanetInfo(planetData) {
+        const planetInfo = document.getElementById('planetInfo');
+        planetInfo.innerHTML = `
+            <strong>Nombre:</strong> ${planetData.name}<br>
+            <strong>Masa:</strong> ${planetData.mass}<br>
+            <strong>Radio:</strong> ${planetData.radius}<br>
+            <strong>Flujo:</strong> ${planetData.flux}<br>
+            <strong>Temperatura superficial:</strong> ${planetData.tsurf} K<br>
+            <strong>Período orbital:</strong> ${planetData.period} días<br>
+            <strong>Distancia:</strong> ${planetData.distance} años luz<br>
+            <strong>ESI:</strong> ${planetData.esi}
+        `;
+    }
+
+    // Escuchar eventos de clic en la ventana
+    window.addEventListener('click', onMouseClick);
+
+    // Ajustar la ventana cuando se cambia el tamaño de la pantalla
+    window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+
+</body>
+</html>
